@@ -107,24 +107,38 @@ export async function checkWriteAccess(): Promise<{ canWrite: boolean; error?: s
   const { import: importPath, failed: failedPath } = await db.getMonitoredPaths();
 
   if (!importPath.path || !failedPath.path) {
-    return { canWrite: false, error: 'Monitored paths are not configured.' };
+    return { canWrite: false, error: 'Monitored paths are not configured in Settings.' };
   }
-
-  const testFilePathImport = path.join(importPath.path, `.write_test_${Date.now()}`);
-  const testFilePathFailed = path.join(failedPath.path, `.write_test_${Date.now()}`);
 
   try {
-    await fs.writeFile(testFilePathImport, 'test');
-    await fs.unlink(testFilePathImport);
-    await fs.writeFile(testFilePathFailed, 'test');
-    await fs.unlink(testFilePathFailed);
-    return { canWrite: true };
+    const testFileImport = path.join(importPath.path, `.write_test_${Date.now()}`);
+    await fs.writeFile(testFileImport, 'test');
+    await fs.unlink(testFileImport);
   } catch (error: any) {
     if (error.code === 'EACCES') {
-      return { canWrite: false, error: `Permission denied. The application user cannot write to the monitored directories.` };
+      return { canWrite: false, error: `Permission denied on the Import folder. The application cannot create files in "${importPath.path}".` };
     }
-    return { canWrite: false, error: error.message };
+    if (error.code === 'ENOENT') {
+      return { canWrite: false, error: `The Import folder path does not exist: "${importPath.path}". Please verify the path in Settings.` };
+    }
+    return { canWrite: false, error: `An unexpected error occurred with the Import folder: ${error.message}` };
   }
+
+  try {
+    const testFileFailed = path.join(failedPath.path, `.write_test_${Date.now()}`);
+    await fs.writeFile(testFileFailed, 'test');
+    await fs.unlink(testFileFailed);
+  } catch (error: any) {
+    if (error.code === 'EACCES') {
+      return { canWrite: false, error: `Permission denied on the Failed folder. The application cannot create files in "${failedPath.path}".` };
+    }
+    if (error.code === 'ENOENT') {
+      return { canWrite: false, error: `The Failed folder path does not exist: "${failedPath.path}". Please verify the path in Settings.` };
+    }
+    return { canWrite: false, error: `An unexpected error occurred with the Failed folder: ${error.message}` };
+  }
+
+  return { canWrite: true };
 }
 
 

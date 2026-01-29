@@ -53,6 +53,7 @@ export default function DashboardPage() {
   const [importError, setImportError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [writeAccessError, setWriteAccessError] = useState<string | null>(null);
 
 
   const { toast } = useToast();
@@ -71,8 +72,9 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function verifyAccess() {
-      const { canWrite } = await checkWriteAccess();
+      const { canWrite, error } = await checkWriteAccess();
       setCanWrite(canWrite);
+      setWriteAccessError(error || null);
     }
     verifyAccess();
   }, []);
@@ -404,8 +406,10 @@ export default function DashboardPage() {
           {!canWrite && (
             <Alert variant="destructive" className="mb-4">
               <Info className="h-4 w-4" />
+              <AlertTitle>Configuration Error</AlertTitle>
               <AlertDescription>
-                The application does not have write permissions for the monitored folders. Actions are disabled. Please grant write access to the application user on the server or contact your system administrator.
+                <p className="font-semibold">{writeAccessError || "An unknown error occurred."}</p>
+                <p className="mt-2 text-xs">All folder-related actions are disabled. Please resolve the issue and refresh the page.</p>
               </AlertDescription>
             </Alert>
           )}
