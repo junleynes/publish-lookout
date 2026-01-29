@@ -156,7 +156,21 @@ const getDb = (): Database.Database => {
         `);
         
         dbInstance = db;
-        // Check if migration should be run after ensuring tables exist
+        
+        // Simple migration to add lastLogin column if it doesn't exist
+        try {
+            const tableInfo: any[] = dbInstance.prepare("PRAGMA table_info(users)").all();
+            const hasLastLogin = tableInfo.some((col: any) => col.name === 'lastLogin');
+
+            if (!hasLastLogin) {
+                console.log('[DB] Migrating users table: adding lastLogin column...');
+                dbInstance.exec('ALTER TABLE users ADD COLUMN lastLogin TEXT');
+                console.log('[DB] Migration complete.');
+            }
+        } catch (e) {
+            console.error('[DB] Error during users table migration check:', e);
+        }
+
         migrateDataFromJson(dbInstance);
     }
     return dbInstance;
