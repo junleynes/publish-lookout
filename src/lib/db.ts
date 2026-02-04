@@ -6,8 +6,8 @@ import * as path from 'path';
 import Database from 'better-sqlite3';
 import type { Database as JsonDatabase, BrandingSettings, CleanupSettings, FileStatus, MonitoredPaths, ProcessingSettings, SmtpSettings, User, MaintenanceSettings, LogEntry } from '../types';
 
-const dataDir = path.resolve(process.cwd(), 'data');
-const defaultDbPath = path.resolve(dataDir, 'database.sqlite');
+const projectRootDataDir = path.resolve(process.cwd(), 'data');
+const defaultDbPath = path.resolve(projectRootDataDir, 'database.sqlite');
 const dbPath = process.env.DATABASE_PATH || defaultDbPath;
 const jsonDbPath = path.resolve(process.cwd(), 'src/lib/database.json');
 const jsonDbMigratedPath = path.resolve(process.cwd(), 'src/lib/database.json.migrated');
@@ -110,13 +110,13 @@ const getDb = (): Database.Database => {
     if (!dbInstance) {
         console.log(`[DB] Initializing new SQLite singleton connection to: ${dbPath}`);
         
-        // Ensure the data directory exists before connecting
-        if (!fs.existsSync(dataDir)) {
-            console.log(`[DB] Data directory not found. Creating: ${dataDir}`);
+        const dbDirectory = path.dirname(dbPath);
+        if (!fs.existsSync(dbDirectory)) {
+            console.log(`[DB] Database directory not found. Creating: ${dbDirectory}`);
             try {
-                fs.mkdirSync(dataDir, { recursive: true });
+                fs.mkdirSync(dbDirectory, { recursive: true });
             } catch (e: any) {
-                console.error(`[DB] CRITICAL: Could not create data directory at ${dataDir}. Please create it manually and grant write permissions.`, e);
+                console.error(`[DB] CRITICAL: Could not create database directory at ${dbDirectory}. Please check path and permissions.`, e);
                 throw e;
             }
         }
@@ -498,3 +498,5 @@ export async function readDb(): Promise<JsonDatabase> {
         maintenanceSettings,
     };
 }
+
+    
