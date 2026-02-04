@@ -6,7 +6,9 @@ import * as path from 'path';
 import Database from 'better-sqlite3';
 import type { Database as JsonDatabase, BrandingSettings, CleanupSettings, FileStatus, MonitoredPaths, ProcessingSettings, SmtpSettings, User, MaintenanceSettings, LogEntry } from '../types';
 
-const dbPath = process.env.DATABASE_PATH || path.resolve(process.cwd(), 'src/lib/database.sqlite');
+const dataDir = path.resolve(process.cwd(), 'data');
+const defaultDbPath = path.resolve(dataDir, 'database.sqlite');
+const dbPath = process.env.DATABASE_PATH || defaultDbPath;
 const jsonDbPath = path.resolve(process.cwd(), 'src/lib/database.json');
 const jsonDbMigratedPath = path.resolve(process.cwd(), 'src/lib/database.json.migrated');
 
@@ -107,6 +109,17 @@ function migrateDataFromJson(db: Database.Database) {
 const getDb = (): Database.Database => {
     if (!dbInstance) {
         console.log(`[DB] Initializing new SQLite singleton connection to: ${dbPath}`);
+        
+        // Ensure the data directory exists before connecting
+        if (!fs.existsSync(dataDir)) {
+            console.log(`[DB] Data directory not found. Creating: ${dataDir}`);
+            try {
+                fs.mkdirSync(dataDir, { recursive: true });
+            } catch (e: any) {
+                console.error(`[DB] CRITICAL: Could not create data directory at ${dataDir}. Please create it manually and grant write permissions.`, e);
+                throw e;
+            }
+        }
         
         const db = new Database(dbPath);
         db.pragma('journal_mode = WAL');
